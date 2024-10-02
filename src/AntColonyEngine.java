@@ -4,7 +4,6 @@ import java.util.Queue;
 
 /**
  * Main engine class which controls the game
- * Running this program's <code></code>main method starts the simulation in text mode
  *
  * @author Jerry Cui
  * @version %I%, %G%
@@ -13,16 +12,17 @@ import java.util.Queue;
 public class AntColonyEngine {
     // Initialize variables for the engine
     // Constant integers that represent something
-    final public int COLONY = -2;    // -2 represents colony
-    final public int OBSTACLE = -1;  // -1 represents an obstacle
+    final public static int COLONY = -2;    // -2 represents colony
+    final public static int OBSTACLE = -1;  // -1 represents an obstacle
+    final public static int EMPTY = 0;      // 0 represents an empty tile
 
     // Directions
-    final public int UP = 0;
-    final public int RIGHT = 1;
-    final public int DOWN = 2;
-    final public int LEFT = 3;
+    final public static int UP = 0;
+    final public static int RIGHT = 1;
+    final public static int DOWN = 2;
+    final public static int LEFT = 3;
 
-    final public int[][] DIRECTIONS = {
+    final public static int[][] DIRECTIONS = {
             {-1, 0},  // up
             {0, 1},   // right
             {1, 0},   // down
@@ -54,6 +54,8 @@ public class AntColonyEngine {
 
     private int[][] antGrid;  // contains the number of ants on each tile (there can be more than one tile)
 
+    private int numAnts;
+
     // Values for the simulation (not final because user can edit them)
     int pheromoneStrength = 1000;  // default value of pheromones left behind
     int pheromoneDecay = 1;        // how much pheromones decay per turn
@@ -71,6 +73,7 @@ public class AntColonyEngine {
      */
     AntColonyEngine(int numRows, int numColumns, int colonyRow, int colonyColumn, int[] antRow, int[] antColumn, int[][] terrainGrid) {
         this.turn = 0;
+        this.numAnts = antRow.length;
 
         this.numRows = numRows;
         this.numColumns = numColumns;
@@ -80,7 +83,7 @@ public class AntColonyEngine {
 
         this.antRow = antRow;
         this.antColumn = antColumn;
-        this.antFoundFood = new boolean[antRow.length];  // default is false, because none of the ants have found food yet
+        this.antFoundFood = new boolean[numAnts];  // default is false, because none of the ants have found food yet
 
         this.pheromoneGrid = new int[numRows][numColumns];
         // Fill pheromone grid with the minimum pheromone level
@@ -94,9 +97,11 @@ public class AntColonyEngine {
 
         this.antGrid = new int[numRows][numColumns];
         // Loop through all ants and "place" them on the grid
-        for (int i = 0; i < this.antRow.length; i++) {
+        for (int i = 0; i < this.numAnts; i++) {
             this.antGrid[antRow[i]][antColumn[i]]++;
         }
+
+
     }
 
     /**
@@ -139,6 +144,9 @@ public class AntColonyEngine {
         antRow = Utils.appendToArray(antRow, row);
         antColumn = Utils.appendToArray(antColumn, column);
         antFoundFood = Utils.appendToArray(antFoundFood, foundFood);
+
+        antGrid[row][column]++;
+        numAnts++;
     }
 
     /**
@@ -148,9 +156,13 @@ public class AntColonyEngine {
      */
     public void deleteAnt(int index) {
         // Delete the ant's attributes from each respective array
+        antGrid[antRow[index]][antColumn[index]]--;
+        numAnts--;
+
         antRow = Utils.deleteFromArray(antRow, index);
         antColumn = Utils.deleteFromArray(antColumn, index);
         antFoundFood = Utils.deleteFromArray(antFoundFood, index);
+
     }
 
     /**
@@ -244,7 +256,7 @@ public class AntColonyEngine {
 
         int legalMoves = 4;  // number of legal moves
 
-        int[] possibleMoves = {UP, RIGHT, LEFT, DOWN};
+        int[] possibleMoves = {UP, RIGHT, DOWN, LEFT};
         int[] weights = new int[4];  // the weight (how likely to choose) for each move (weight is 0 for invalid moves, otherwise it is the pheromone value)
 
         for (int i = 0; i < 4; i++) {  // i is the direction we are checking
@@ -252,19 +264,18 @@ public class AntColonyEngine {
                 weights[i] = 0;  // remove the chance of this move being picked
                 legalMoves--;
             } else if (terrainGrid[antRow[antIndex] + DIRECTIONS[i][0]][antColumn[antIndex] + DIRECTIONS[i][1]] > 0) {  // if there is food on an adjacent tile, move there automatically
-                return convertToMove(antRow[antIndex] + DIRECTIONS[i][0], antColumn[antIndex] + DIRECTIONS[i][1], i);
+                return convertToMove(antRow[antIndex], antColumn[antIndex], i);
             } else {
                 weights[i] = pheromoneGrid[antRow[antIndex] + DIRECTIONS[i][0]][antRow[antIndex] + DIRECTIONS[i][0]];  // set the weighting equal to the pheromone strength
             }
         }
 
+        // stay in place if there are no legal moves
         if (legalMoves > 0) {
             nextMove = convertToMove(antRow[antIndex], antColumn[antIndex], Utils.weightedRandomChoice(possibleMoves, weights));  // now choose one of the directions to move in
 
-            return nextMove;
-        } else {
-            return nextMove;  // stay in place if there are no legal moves
         }
+        return nextMove;
 
     }
 
@@ -289,6 +300,125 @@ public class AntColonyEngine {
         return sum / (double) counter;
     }
 
+    /**
+     * Updates the simulation
+     * First, move all the ants, and then calculate pheromone decay
+     */
+    public void update() {
+        // Update ant locations
+        int[] nextMove;
+
+        for (int i  = 0; i < numAnts; i++) {
+            // Different algorithms depending on whether the ant has found food
+            if (!antFoundFood[i]) {
+                nextMove = findFoodNextMove(i);
+                antGrid[nextMove[0]][nextMove[1]] += 1;  // new location gains an ant, old one loses an ant
+                antGrid[antRow[i]][antColumn[i]] -= 1;
+                antRow[i] = nextMove[0];  // update the row and column arrays
+                antColumn[i] = nextMove[1];
+
+                // Check if the ant moved onto food while searching for it
+                if (terrainGrid[antRow[i]][antColumn[i]] > 0) {
+                    antFoundFood[i] = true;
+                    terrainGrid[antRow[i]][antColumn[i]] -= 1;  // remove one unit of food
+                    // increase pheromones on the current tile
+                    pheromoneGrid[antRow[i]][antColumn[i]] += pheromoneStrength;
+                }
+            } else {  // Check if ant with food moved back to the colony
+                nextMove = foundFoodNextMove(i);
+
+                antGrid[nextMove[0]][nextMove[1]] += 1;  // new location gains an ant, old one loses an ant
+                antGrid[antRow[i]][antColumn[i]] -= 1;
+                antRow[i] = nextMove[0];  // update the row and column arrays
+                antColumn[i] = nextMove[1];
+
+                // Check if the ant made it back to the colony
+                if (antRow[i] == colonyRow && antColumn[i] == colonyColumn) {
+                    antFoundFood[i] = false;
+                }
+            }
+        }
+
+        // Pheromone decay
+        int[][] newPheromoneGrid = new int[numRows][numColumns];
+
+        for (int row = 0; row < numRows; row++) {
+            for (int column = 0; column < numColumns; column++) {
+                newPheromoneGrid[row][column] = (int) areaAverageValue(row, column);
+                newPheromoneGrid[row][column] -= pheromoneDecay;
+                if (newPheromoneGrid[row][column] < minimumPheromone) {
+                    newPheromoneGrid[row][column] = minimumPheromone;  // minimum pheromone level
+                }
+            }
+        }
+
+        pheromoneGrid = newPheromoneGrid;
+    }
+
+    // Text output methods (if user is using text simulation)
+    /**
+     * Outputs the data in the grid, separated by a space, one row per line
+     *
+     * @param grid the grid to print
+     */
+    public void printGrid(int[][] grid) {
+        int highestNumber = Utils.findHighest(grid);
+        int outputWidth = String.valueOf(highestNumber).length() + 1;  // get width of longest number to format accordingly, +1 in case there is a negative
+
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[i].length; j++) {
+                System.out.printf("%" + outputWidth + "d ", grid[i][j]);  // format it with equivalent spacing, extra space will go to the left
+            }
+            System.out.println();  // new line before the next row
+        }
+    }
+
+    /**
+     * Print out all the info at the start of a turn and prompt user for command
+     */
+    public void printInfo() {
+        System.out.println("Turn " + turn + ":");
+
+        // Output the types of grids
+        System.out.println("Pheromone Grid: ");
+        printGrid(pheromoneGrid);
+        System.out.println("Terrain Grid: ");
+        printGrid(terrainGrid);
+        System.out.println("Ant Grid: ");
+        printGrid(antGrid);
+
+        System.out.println("Enter your command: ");
+
+        System.out.println("QUIT: exit program");
+        System.out.println("HELP: tutorial on how to interpret/use the program");
+        System.out.println("PHEROMONE: overwrite the value of a pheromone at a specific row/column");
+        System.out.println("PHEROMONE STRENGTH: change the value of pheromone strength");
+        System.out.println("PHEROMONE DECAY: change the value of pheromone decay");
+        System.out.println("COLONY: change the location of the ant colony");
+        System.out.println("OBSTACLE: create or remove obstacle");
+        System.out.println("FOOD: overwrite food values");
+        System.out.println("EDIT ANT: flip the value of if ant has found food or not");
+        System.out.println("ADD ANT: add another ant");
+        System.out.println("DELETE ANT: delete an at");
+        System.out.println("Any other input: continue to next turn");
+    }
+
+    /**
+     * Prints out information about the simulation and how it works
+     */
+    public void printHelp() {
+        System.out.println("HELP: ");
+    }
+
+    /**
+     * Prints out information about an ant
+     *
+     * @param index        location of ant data in the arrays
+     */
+    public void printAnt(int index) {
+        System.out.println("Ant #" + index + " at row " + antRow[index] + " and column " + antColumn[index] + "; found food: " + antFoundFood[index]);
+    }
+
     // Getter and setter methods
     // Arrays don't have literal getters/setters; only a specific index can be accessed/changed at a time
     // These methods are not responsible for ensuring the validity of parameters
@@ -309,6 +439,24 @@ public class AntColonyEngine {
      */
     public void setTurn(int turn) {
         this.turn = turn;
+    }
+
+    /**
+     * Returns the number of ants
+     *
+     * @return the number of ants
+     */
+    public int getNumAnts() {
+        return numAnts;
+    }
+
+    /**
+     * Sets the number of ants
+     *
+     * @param number the number of ants
+     */
+    public void setNumAnts(int number) {
+        this.numAnts = number;
     }
 
     /**

@@ -136,5 +136,25 @@ public class Utils {
         return -1;  // in case no option was picked
     }
 
+    /**
+     * Find the largest integer absolute value in a 2D integer array
+     *
+     * @param array the array to search through
+     * @return      the integer with the largest absolute value (still returns the original number though)
+     */
+    public static int findHighest(int[][] array) {
+        int highest = array[0][0];
+
+        for (int i = 0; i < array.length; i++) {
+            for (int j = 0; j < array[i].length; j++) {
+                if (Math.abs(array[i][j]) > Math.abs(highest)) {
+                    highest = Math.abs(array[i][j]);
+                }
+            }
+        }
+
+        return highest;
+    }
+
 
 }
