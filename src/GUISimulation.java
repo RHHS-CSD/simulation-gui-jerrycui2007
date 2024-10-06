@@ -30,6 +30,8 @@ public class GUISimulation {
     final private int MAXSLIDERHEIGHT = 50;
     final private int MAXCOMBOBOXWIDTH = 300;
     final private int MAXCOMBOBOXHEIGHT = 20;
+    final private int MAXTEXTAREAWIDTH = 300;
+    final private int MAXTEXTAREAHEIGHT = 20;
 
     final private double gridPanelPercentage = 0.7;  // percent of the screen that contains the grid (other percentage is for the control panel)
 
@@ -55,6 +57,7 @@ public class GUISimulation {
     // valid possibilities of a location based on the number of rows and columns
     private String[] rowOptions = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     private String[] columnOptions = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    private String[] booleanOptions = {"false", "true"};
 
     private AntColonyEngine engine;
 
@@ -548,7 +551,7 @@ public class GUISimulation {
                 // Initialize the engine
                 engine = new AntColonyEngine(numRows, numColumns, colonyRow, colonyColumn, antRow, antColumn, terrainGrid);
 
-                simulation();  // start the simulation
+                drawSimulation();  // start the simulation
             }
         });
         nextButton.setAlignmentX(CENTER_ALIGNMENT);
@@ -567,7 +570,7 @@ public class GUISimulation {
     /**
      * Creates the GUI for the simulation. selectedRow and selectedColumn is the tile to display detailed information about in the control panel
      */
-    public void simulation() {
+    public void drawSimulation() {
         // Delete previous GUI
         frame.getContentPane().removeAll();
 
@@ -636,7 +639,9 @@ public class GUISimulation {
                 cell.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        simulation();  // redraw the GUI and display information of the recently targeted tile
+                        selectedRow = currentRow;
+                        selectedColumn = currentColumn;
+                        drawSimulation();  // redraw the GUI and display information of the recently targeted tile
                     }
                 });
 
@@ -661,11 +666,258 @@ public class GUISimulation {
                 // Call method to update game state
                 engine.update();
 
-                simulation();  // start the next turn
+                drawSimulation();  // start the next turn
             }
         });
         nextButton.setAlignmentX(CENTER_ALIGNMENT);
         controlPanel.add(nextButton);
+
+        // Changing default values in the simulation
+        JPanel defaultPheromoneStrengthPanel = new JPanel();
+        defaultPheromoneStrengthPanel.setLayout(new BoxLayout(defaultPheromoneStrengthPanel, BoxLayout.X_AXIS));
+
+        JLabel defaultPheromoneStrengthLabel = new JLabel("Default pheromone strength: ");
+        defaultPheromoneStrengthPanel.add(defaultPheromoneStrengthLabel);
+
+        JTextArea defaultPheromoneStrengthTextArea = new JTextArea(String.valueOf(engine.getPheromoneStrength()));
+        defaultPheromoneStrengthTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+        defaultPheromoneStrengthPanel.add(defaultPheromoneStrengthTextArea);
+
+        JButton defaultPheromoneStrengthButton = new JButton("Set");
+        defaultPheromoneStrengthButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                engine.setPheromoneStrength(Integer.parseInt(defaultPheromoneStrengthTextArea.getText()));
+                drawSimulation();
+            }
+        });
+        defaultPheromoneStrengthPanel.add(defaultPheromoneStrengthButton);
+
+        controlPanel.add(defaultPheromoneStrengthPanel);
+
+        JPanel minimumPheromoneStrengthPanel = new JPanel();
+        minimumPheromoneStrengthPanel.setLayout(new BoxLayout(minimumPheromoneStrengthPanel, BoxLayout.X_AXIS));
+
+        JLabel minimumPheromoneStrengthLabel = new JLabel("Minimum pheromone strength: ");
+        minimumPheromoneStrengthPanel.add(minimumPheromoneStrengthLabel);
+
+        JTextArea minimumPheromoneStrengthTextArea = new JTextArea(String.valueOf(engine.getMinimumPheromone()));
+        minimumPheromoneStrengthTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+        minimumPheromoneStrengthPanel.add(minimumPheromoneStrengthTextArea);
+
+        JButton minimumPheromoneStrengthButton = new JButton("Set");
+        minimumPheromoneStrengthButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                engine.setMinimumPheromone(Integer.parseInt(minimumPheromoneStrengthTextArea.getText()));
+                drawSimulation();
+            }
+        });
+        minimumPheromoneStrengthPanel.add(minimumPheromoneStrengthButton);
+
+        controlPanel.add(minimumPheromoneStrengthPanel);
+
+        JPanel pheromoneDecayPanel = new JPanel();
+        pheromoneDecayPanel.setLayout(new BoxLayout(pheromoneDecayPanel, BoxLayout.X_AXIS));
+
+        JLabel pheromoneDecayLabel = new JLabel("Pheromone decay rate: ");
+        pheromoneDecayPanel.add(pheromoneDecayLabel);
+
+        JTextArea pheromoneDecayTextArea = new JTextArea(String.valueOf(engine.getPheromoneDecay()));
+        pheromoneDecayTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+        pheromoneDecayPanel.add(pheromoneDecayTextArea);
+
+        JButton pheromoneDecayButton = new JButton("Set");
+        pheromoneDecayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                engine.setPheromoneDecay(Integer.parseInt(pheromoneDecayTextArea.getText()));
+                drawSimulation();
+            }
+        });
+        pheromoneDecayPanel.add(pheromoneDecayButton);
+
+        controlPanel.add(pheromoneDecayPanel);
+
+        // Panel for info and options on the selected tile
+        JPanel selectedTilePanel = new JPanel();
+        selectedTilePanel.setLayout(new BoxLayout(selectedTilePanel, BoxLayout.Y_AXIS));
+        selectedTilePanel.setAlignmentX(CENTER_ALIGNMENT);
+
+        JLabel selectedTileHeader = new JLabel("Selected tile: row: " + selectedRow + ", column: " + selectedColumn);
+        selectedTileHeader.setFont(new Font("arial", Font.BOLD, 24));
+        selectedTilePanel.add(selectedTileHeader);
+
+        JPanel pheromonePanel = new JPanel();
+        pheromonePanel.setLayout(new BoxLayout(pheromonePanel, BoxLayout.X_AXIS));
+
+        JLabel pheromoneStrengthLabel = new JLabel("Pheromone strength: ");
+        pheromonePanel.add(pheromoneStrengthLabel);
+
+        JTextArea pheromoneTextArea = new JTextArea(String.valueOf(engine.getPheromoneGrid(selectedRow, selectedColumn)));
+        pheromoneTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+        pheromonePanel.add(pheromoneTextArea);
+
+        JButton pheromoneButton = new JButton("Change pheromone strength");
+        pheromoneButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                engine.setPheromoneGrid(selectedRow, selectedColumn, Integer.parseInt(pheromoneTextArea.getText()));
+                drawSimulation();
+            }
+        });
+        pheromonePanel.add(pheromoneButton);
+
+        selectedTilePanel.add(pheromonePanel);
+
+        // Only display food stats if the tile is not an obstacle or colony
+        if (engine.getTerrainGrid(selectedRow, selectedColumn) >= 0) {
+            JPanel numFoodPanel = new JPanel();
+            numFoodPanel.setLayout(new BoxLayout(numFoodPanel, BoxLayout.X_AXIS));
+
+            JLabel numFoodLabel = new JLabel("Amount of food: ");
+            numFoodPanel.add(numFoodLabel);
+
+            JTextArea numFoodTextArea = new JTextArea(String.valueOf(engine.getTerrainGrid(selectedRow, selectedColumn)));
+            numFoodTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+            numFoodPanel.add(numFoodTextArea);
+
+            JButton numFoodButton = new JButton("Change amount of food");
+            numFoodButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    engine.setTerrainGrid(selectedRow, selectedColumn, Integer.parseInt(numFoodTextArea.getText()));
+                    drawSimulation();
+                }
+            });
+            numFoodPanel.add(numFoodButton);
+
+            selectedTilePanel.add(numFoodPanel);
+
+        }
+
+        // Only allow change colony location to here if it is not an obstacle
+        if (engine.getTerrainGrid(selectedRow, selectedColumn) != AntColonyEngine.OBSTACLE) {
+            JPanel changeColonyPanel = new JPanel();
+            changeColonyPanel.setLayout(new BoxLayout(changeColonyPanel, BoxLayout.X_AXIS));
+
+            JButton changeColonyButton = new JButton("Change colony to this location");
+            changeColonyButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    engine.setTerrainGrid(engine.getColonyRow(), engine.getColonyColumn(), AntColonyEngine.EMPTY);
+                    engine.setTerrainGrid(selectedRow, selectedColumn, AntColonyEngine.COLONY);
+                    engine.setColonyRow(selectedRow);
+                    engine.setColonyColumn(selectedColumn);
+
+                    drawSimulation();
+                }
+            });
+            changeColonyPanel.add(changeColonyButton);
+
+            selectedTilePanel.add(changeColonyPanel);
+
+        }
+
+        // Display change to obstacle or remove obstacle depending on what is on the tile
+        if (engine.getTerrainGrid(selectedRow, selectedColumn) == AntColonyEngine.OBSTACLE) {
+            JPanel changeObstaclePanel = new JPanel();
+            changeObstaclePanel.setLayout(new BoxLayout(changeObstaclePanel, BoxLayout.X_AXIS));
+
+            JButton changeObstacleButton = new JButton("Remove obstacle");
+            changeObstacleButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    engine.setTerrainGrid(selectedRow, selectedColumn, AntColonyEngine.EMPTY);
+
+                    drawSimulation();
+                }
+            });
+            changeObstaclePanel.add(changeObstacleButton);
+
+            selectedTilePanel.add(changeObstaclePanel);
+
+        } else if (engine.getTerrainGrid(selectedRow, selectedColumn) == AntColonyEngine.EMPTY) {
+            JPanel changeObstaclePanel = new JPanel();
+            changeObstaclePanel.setLayout(new BoxLayout(changeObstaclePanel, BoxLayout.X_AXIS));
+
+            JButton changeObstacleButton = new JButton("Add obstacle");
+            changeObstacleButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    engine.setTerrainGrid(selectedRow, selectedColumn, AntColonyEngine.OBSTACLE);
+
+                    drawSimulation();
+                }
+            });
+            changeObstaclePanel.add(changeObstacleButton);
+
+            selectedTilePanel.add(changeObstaclePanel);
+
+        }
+
+        // Option to add ants only if tile is not an obstacle
+        if (engine.getTerrainGrid(selectedRow, selectedColumn) != AntColonyEngine.OBSTACLE) {
+            JPanel addAntPanel = new JPanel();
+            addAntPanel.setLayout(new BoxLayout(addAntPanel, BoxLayout.X_AXIS));
+
+            JButton addAntButton = new JButton("Add ant here");
+            addAntButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    engine.addAnt(selectedRow, selectedColumn, true);
+
+                    drawSimulation();
+                }
+            });
+            addAntPanel.add(addAntButton);
+
+            selectedTilePanel.add(addAntPanel);
+
+        }
+
+        // if there are ants on the tile, list out all of them, with the option to toggle found food or not, and button to delete them
+        if (engine.getAntGrid(selectedRow, selectedColumn) > 0) {
+            for (int i = 0; i < engine.getNumAnts(); i++) {
+                if (engine.getAntRow(i) == selectedRow && engine.getAntColumn(i) == selectedColumn) {
+                    int finalI = i;  // final copy of index variable
+
+                    JPanel antPanel = new JPanel();
+                    antPanel.setLayout(new BoxLayout(antPanel, BoxLayout.X_AXIS));
+
+                    JLabel numFoodLabel = new JLabel("Ant # " + i + ", found food: ");
+                    antPanel.add(numFoodLabel);
+
+                    JComboBox foundFoodComboBox = new JComboBox(booleanOptions);
+                    foundFoodComboBox.setSelectedItem(Boolean.toString(engine.getAntFoundFood(finalI)));
+                    foundFoodComboBox.setMaximumSize(new Dimension(MAXCOMBOBOXWIDTH, MAXCOMBOBOXHEIGHT));
+                    foundFoodComboBox.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            engine.setAntFoundFood(finalI, Boolean.parseBoolean(foundFoodComboBox.getSelectedItem().toString()));
+
+                            drawSimulation();
+                        }
+                    });
+                    antPanel.add(foundFoodComboBox);
+
+                    JButton deleteAntButton = new JButton("Delete ant");
+                    deleteAntButton.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            engine.deleteAnt(finalI);
+
+                            drawSimulation();
+                        }
+                    });
+                    antPanel.add(deleteAntButton);
+
+                    selectedTilePanel.add(antPanel);
+                }
+            }
+        }
+
+        controlPanel.add(selectedTilePanel);
 
         // Create the split pane, with more space given to the grid
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gridPanel, controlPanel);
