@@ -1,6 +1,6 @@
 /**
  *
- * @author Jerry Cui]
+ * @author Jerry Cui
  * @version %I%, %G%
  * @since 1.0
  */
