@@ -67,9 +67,9 @@ public class GUISimulation {
     private int selectedRow = 0;
     private int selectedColumn = 0;
 
-    private int timerDelay = 50;  // number of seconds to wait before automatically moving to next turn, multiplied by 10
-    private int minTimerDelay = 10;
-    private int maxTimerDelay = 50;
+    private int timerDelay = 5;  // number of seconds to wait before automatically moving to next turn, multiplied by 10
+    private int minTimerDelay = 1;
+    private int maxTimerDelay = 5;
     private boolean paused = false;
 
     private Timer turnTimer;
@@ -295,6 +295,8 @@ public class GUISimulation {
                                 }
                             }
                         });
+
+
 
                         turnTimer.start();
 
@@ -876,18 +878,18 @@ public class GUISimulation {
 
         // Create the grid panel (left side)
         JPanel gridPanel = new JPanel();
-        gridPanel.setLayout(new GridLayout(numRows, numColumns));
+        gridPanel.setLayout(new GridLayout(engine.getNumRows(), engine.getNumColumns()));
 
         // Calculate the size of each cell based on screen dimensions
-        int cellWidth = (int) (SCREENWIDTH * gridPanelPercentage / numColumns); // leave space for the control panel
-        int cellHeight = SCREENHEIGHT / numRows;
+        int cellWidth = (int) (SCREENWIDTH * gridPanelPercentage / engine.getNumColumns()); // leave space for the control panel
+        int cellHeight = SCREENHEIGHT / engine.getNumRows();
 
         JLabel hoverLabel = new JLabel("");  // label which shows the coordinates of the current tile mouse is hovering over
         hoverLabel.setAlignmentX(CENTER_ALIGNMENT);
 
         // Add grid cells to the panel
-        for (int row = 0; row < numRows; row++) {
-            for (int column = 0; column < numColumns; column++) {
+        for (int row = 0; row < engine.getNumRows(); row++) {
+            for (int column = 0; column < engine.getNumColumns(); column++) {
                 JPanel cell = new JPanel();
                 cell.setPreferredSize(new Dimension(cellWidth, cellHeight));
                 cell.setBorder(BorderFactory.createLineBorder(Color.BLACK)); // draw grid lines
@@ -1072,7 +1074,7 @@ public class GUISimulation {
         delayLabel.setAlignmentX(CENTER_ALIGNMENT);
         controlPanel.add(delayLabel);
 
-        JSlider delaySlider = new JSlider(JSlider.HORIZONTAL, minTimerDelay, maxTimerDelay, numRows);
+        JSlider delaySlider = new JSlider(JSlider.HORIZONTAL, minTimerDelay, maxTimerDelay, timerDelay);
         delaySlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
@@ -1298,6 +1300,18 @@ public class GUISimulation {
         savePanel.add(numFoodButton);
 
         selectedTilePanel.add(savePanel);
+
+        JButton exitButton = new JButton("Exit Simulation");
+        exitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // stop the timer and return to main menu
+                turnTimer.stop();
+                mainMenu();
+            }
+        });
+        exitButton.setAlignmentX(CENTER_ALIGNMENT);
+        controlPanel.add(exitButton);
 
         // Create the split pane, with more space given to the grid
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gridPanel, controlPanel);
