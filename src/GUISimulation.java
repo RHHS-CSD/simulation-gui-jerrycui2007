@@ -80,7 +80,7 @@ public class GUISimulation {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(SCREENWIDTH, SCREENHEIGHT);
 
-        inputDimensions();
+        mainMenu();
 
         frame.setVisible(true);
     }
@@ -94,35 +94,82 @@ public class GUISimulation {
 
         JPanel menuPanel = new JPanel();
         frame.add(menuPanel);
+
+
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
+        menuPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Title label setup
+        JLabel titleLabel = new JLabel("Ant Colony Simulation");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);  // Align center horizontally
+        menuPanel.add(Box.createVerticalGlue());  // Pushes components to the center vertically
+        menuPanel.add(titleLabel);
+
+        // Add space between components
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Start simulation button
         JButton startSimulationButton = new JButton("Start new simulation");
+        startSimulationButton.setAlignmentX(Component.CENTER_ALIGNMENT);  // Align center horizontally
         startSimulationButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inputDimensions();  // start inputting specifications for the simulation
+                inputDimensions();
             }
         });
         menuPanel.add(startSimulationButton);
 
+        // Add space between components
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Load preset simulation button
         JButton presetButton = new JButton("Load a preset simulation");
+        presetButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         presetButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inputDimensions();  // start inputting specifications for the simulation
+                inputDimensions();
             }
         });
         menuPanel.add(presetButton);
 
+        // Add space between components
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Help button
         JButton helpButton = new JButton("Help");
+        helpButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         helpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inputDimensions();  // start inputting specifications for the simulation
+                inputDimensions();
             }
         });
         menuPanel.add(helpButton);
 
+        // Pushes components upwards, helping center vertically
+        menuPanel.add(Box.createVerticalGlue());
+
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    /**
+     * Explain how the simulation works to the user
+     */
+    public void helpScreen() {
+        // Delete previous GUI
+        frame.getContentPane().removeAll();
+
+        JPanel helpPanel = new JPanel();
+        frame.add(helpPanel);
+
+
+
+        frame.revalidate();
+        frame.repaint();
     }
 
     /**
@@ -195,6 +242,10 @@ public class GUISimulation {
         });
         nextButton.setAlignmentX(CENTER_ALIGNMENT);
         initializationPanel.add(nextButton);
+
+        // Update the screen
+        frame.revalidate();
+        frame.repaint();
     }
 
     /**
