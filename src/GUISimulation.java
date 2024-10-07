@@ -64,6 +64,13 @@ public class GUISimulation {
     private int selectedRow = 0;
     private int selectedColumn = 0;
 
+    private int timerDelay = 50;  // number of seconds to wait before automatically moving to next turn, multiplied by 10
+    private int minTimerDelay = 10;
+    private int maxTimerDelay = 50;
+    private boolean paused = false;
+
+    private Timer turnTimer;
+
     /**
      * Initialize the GUI simulation
      */
@@ -79,9 +86,52 @@ public class GUISimulation {
     }
 
     /**
+     * Present the user with options like start simulation, start with a preset, and view help
+     */
+    public void mainMenu() {
+        // Delete previous GUI
+        frame.getContentPane().removeAll();
+
+        JPanel menuPanel = new JPanel();
+        frame.add(menuPanel);
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+
+        JButton startSimulationButton = new JButton("Start new simulation");
+        startSimulationButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                inputDimensions();  // start inputting specifications for the simulation
+            }
+        });
+        menuPanel.add(startSimulationButton);
+
+        JButton presetButton = new JButton("Load a preset simulation");
+        presetButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                inputDimensions();  // start inputting specifications for the simulation
+            }
+        });
+        menuPanel.add(presetButton);
+
+        JButton helpButton = new JButton("Help");
+        helpButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                inputDimensions();  // start inputting specifications for the simulation
+            }
+        });
+        menuPanel.add(helpButton);
+
+    }
+
+    /**
      * Allow user to input the dimensions of the simulation
      */
     public void inputDimensions() {
+        // Delete previous GUI
+        frame.getContentPane().removeAll();
+
         JPanel initializationPanel = new JPanel();
         frame.add(initializationPanel);
         initializationPanel.setLayout(new BoxLayout(initializationPanel, BoxLayout.Y_AXIS));
@@ -551,6 +601,19 @@ public class GUISimulation {
                 // Initialize the engine
                 engine = new AntColonyEngine(numRows, numColumns, colonyRow, colonyColumn, antRow, antColumn, terrainGrid);
 
+                // Initialize the timer with the default delay
+                turnTimer = new Timer((int) timerDelay * 100, new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        if (!paused) {
+                            engine.update();  // Call the method that advances the simulation
+                            drawSimulation();  // Redraw the grid after each turn
+                        }
+                    }
+                });
+
+                turnTimer.start();
+
                 drawSimulation();  // start the simulation
             }
         });
@@ -767,6 +830,51 @@ public class GUISimulation {
             }
         });
         pheromonePanel.add(pheromoneButton);
+
+        JLabel delayLabel = new JLabel("Turn delay (centi seconds): ");
+        delayLabel.setAlignmentX(CENTER_ALIGNMENT);
+        controlPanel.add(delayLabel);
+
+        JSlider delaySlider = new JSlider(JSlider.HORIZONTAL, minTimerDelay, maxTimerDelay, numRows);
+        delaySlider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                timerDelay = (int) delaySlider.getValue();
+                turnTimer.setDelay(timerDelay * 100);  // Update the timer's delay
+            }
+        });
+        delaySlider.setMajorTickSpacing(maxTimerDelay - minTimerDelay);
+        delaySlider.setMinorTickSpacing(1);
+        delaySlider.setPaintTicks(true);
+        delaySlider.setPaintLabels(true);
+        delaySlider.setMaximumSize(new Dimension(MAXSLIDERWIDTH, MAXSLIDERHEIGHT));
+        controlPanel.add(delaySlider);
+
+        // Button to pause/unpause simulation
+        if (paused) {
+            JButton unpauseButton = new JButton("Unpause simulation");
+            unpauseButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    paused = false;
+                    turnTimer.start();  // Start the timer
+                    drawSimulation();
+
+                }
+            });
+            controlPanel.add(unpauseButton);
+        } else {
+            JButton pauseButton = new JButton("Pause simulation");
+            pauseButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    paused = true;
+                    turnTimer.stop();
+                    drawSimulation();
+                }
+            });
+            controlPanel.add(pauseButton);
+        }
 
         selectedTilePanel.add(pheromonePanel);
 
