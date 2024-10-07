@@ -1,15 +1,17 @@
 // for BFS algorithm
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Queue;
 
 /**
  * Main engine class which controls the game
+ * Implements <code>Serializable</code> so I don't get a stroke trying to save and open from text files
  *
  * @author Jerry Cui
  * @version %I%, %G%
  * @since 1.0
  */
-public class AntColonyEngine {
+public class AntColonyEngine implements Serializable {
     // Initialize variables for the engine
     // Constant integers that represent something
     final public static int COLONY = -2;    // -2 represents colony

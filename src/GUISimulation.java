@@ -4,6 +4,9 @@ import javax.swing.event.ChangeListener;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static java.awt.Component.CENTER_ALIGNMENT;
 
@@ -18,8 +21,8 @@ public class GUISimulation {
     private static JFrame frame;
 
     // Constants
-    final int SCREENWIDTH = 1920;
-    final int SCREENHEIGHT = 1080;
+    final int SCREENWIDTH = 1820;
+    final int SCREENHEIGHT = 1005;
 
     final private int MINROWS = 10;
     final private int MINCOLUMNS = 10;
@@ -32,6 +35,8 @@ public class GUISimulation {
     final private int MAXCOMBOBOXHEIGHT = 20;
     final private int MAXTEXTAREAWIDTH = 300;
     final private int MAXTEXTAREAHEIGHT = 20;
+    final private int MAXBUTTONWIDTH = 300;
+    final private int MAXBUTTONHEIGHT = 50;
 
     final private double gridPanelPercentage = 0.7;  // percent of the screen that contains the grid (other percentage is for the control panel)
 
@@ -130,7 +135,7 @@ public class GUISimulation {
         presetButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inputDimensions();
+                loadPreset();
             }
         });
         menuPanel.add(presetButton);
@@ -144,7 +149,7 @@ public class GUISimulation {
         helpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                inputDimensions();
+                helpScreen();
             }
         });
         menuPanel.add(helpButton);
@@ -157,20 +162,173 @@ public class GUISimulation {
     }
 
     /**
-     * Explain how the simulation works to the user
+     * Explains how to use the simulation for the user
      */
     public void helpScreen() {
         // Delete previous GUI
         frame.getContentPane().removeAll();
 
         JPanel helpPanel = new JPanel();
+        helpPanel.setLayout(new BorderLayout());
         frame.add(helpPanel);
 
+        JLabel helpLabel = new JLabel("<html><div style='text-align: center;'>"
+                + "<h1>Help</h1>"
+                + "<p><strong>About the simulation:</strong><br>"
+                + "This simulation was created by Jerry Cui for the Grade 12 AP Computer Science class at RHHS.<br>"
+                + "This is the GUI version of the simulation.</p>"
 
+                + "<p><strong>Rules of the simulation:</strong><br>"
+                + "* Ants have a \"searching for food\" or \"found food\" state.<br>"
+                + "* If they are searching for food, they will move randomly, but are influenced by nearby pheromone levels.<br>"
+                + "* If adjacent to a food tile, they automatically move onto it (random if adjacent to multiple food tiles).<br>"
+                + "* Once they find food, they take one \"unit\" of food and return to the colony in the shortest path.<br>"
+                + "* Pheromones decay: each turn, the pheromone value of each tile becomes the average of itself and the surrounding tiles.<br>"
+                + "* Ants cannot move onto obstacle tiles, and ants cannot move diagonally.</p>"
 
+                + "<p><strong>How to use the simulation:</strong><br>"
+                + "There is a pause button that will freeze the simulation, making it easier to edit the simulation.<br>"
+                + "Click on a tile to edit its contents, such as the amount of food or pheromone strength.</p>"
+
+                + "<p><strong>Presets:</strong><br>"
+                + "You can save simulation states as presets. The data will be stored in text files in the presets directory.<br>"
+                + "Use this to save maps you've created, like complicated mazes.</p>"
+                + "</div></html>");
+
+        helpLabel.setHorizontalAlignment(SwingConstants.CENTER);  // Center the label horizontally
+        helpPanel.add(helpLabel, BorderLayout.NORTH);  // Add label to the top of the screen
+
+        // Stupid button kept on ballooning to take up the entire screen so I made a panel just to control it
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));  // Center the button within this panel
+
+        // Create the back button
+        JButton backButton = new JButton("Back to Menu");
+        backButton.setAlignmentX(Component.CENTER_ALIGNMENT);  // Align the button horizontally
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mainMenu();
+            }
+        });
+
+        buttonPanel.add(backButton);
+
+        helpPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Update the frame
         frame.revalidate();
         frame.repaint();
     }
+
+    /**
+     * Search for all the files in the presets folder, and allow the user to select a preset
+     */
+    public void loadPreset() {
+        // Delete previous GUI
+        frame.getContentPane().removeAll();
+
+        JPanel presetPanel = new JPanel();
+        presetPanel.setLayout(new BoxLayout(presetPanel, BoxLayout.Y_AXIS));
+        frame.add(presetPanel);
+
+        JLabel titleLabel = new JLabel("Load Presets");
+        titleLabel.setFont(new Font("arial", Font.BOLD, 36));
+        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
+        presetPanel.add(titleLabel);
+
+        JLabel infoLabel = new JLabel("Presets are stored the \"presets\" folder. Choose a preset below to begin the simulation.");
+        infoLabel.setAlignmentX(CENTER_ALIGNMENT);
+        presetPanel.add(infoLabel);
+
+        // Create a button for each simulation found
+        for (File file : getFiles("presets/")) {
+            final File currentFile = file;
+            JButton fileButton = new JButton(currentFile.getName());
+            fileButton.setAlignmentX(CENTER_ALIGNMENT);
+            fileButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Open the engine object written to the file
+                    try {
+                        FileInputStream fi = new FileInputStream(new File(currentFile.getAbsolutePath()));
+                        ObjectInputStream oi = new ObjectInputStream(fi);
+
+                        engine = (AntColonyEngine) oi.readObject();
+
+                        // Initialize the simulation
+                        // Initialize the timer with the default delay
+                        turnTimer = new Timer((int) timerDelay * 100, new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                if (!paused) {
+                                    engine.update();  // Call the method that advances the simulation
+                                    drawSimulation();  // Redraw the grid after each turn
+                                }
+                            }
+                        });
+
+                        turnTimer.start();
+
+                        drawSimulation();  // start the simulation
+                    } catch (FileNotFoundException ex) {
+                        JOptionPane.showMessageDialog(null, "Error opening simulation", "Error", JOptionPane.WARNING_MESSAGE);
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(null, "Error opening simulation", "Error", JOptionPane.WARNING_MESSAGE);
+                    } catch (ClassNotFoundException ex) {
+                        JOptionPane.showMessageDialog(null, "Error: corrupted save file", "Error", JOptionPane.WARNING_MESSAGE);
+                    }
+
+                }
+            });
+            presetPanel.add(fileButton);
+        }
+
+        JButton backButton = new JButton("Back to Menu");
+        backButton.setAlignmentX(Component.CENTER_ALIGNMENT);  // Align the button horizontally
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                mainMenu();
+            }
+        });
+        presetPanel.add(backButton);
+
+        // Update the frame
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    /**
+     * Returns all the text files as an array of <code>File</code> objects in a directory
+     *
+     * @param directoryPath path of directory to check
+     * @return              array of the files
+     */
+    public static File[] getFiles(String directoryPath) {
+        File directory = new File(directoryPath);
+
+        // Check if the given path exists and is a directory
+        if (directory.exists() && directory.isDirectory()) {
+            // Filter for only .txt files
+            File[] textFiles = directory.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".txt");
+                }
+            });
+
+            // Return the array of .txt files
+            if (textFiles != null) {
+                return textFiles;
+            }
+        }
+
+        // Return an empty array if the directory does not exist or no files are found
+        return new File[0];
+    }
+
+
 
     /**
      * Allow user to input the dimensions of the simulation
@@ -1077,6 +1235,41 @@ public class GUISimulation {
         }
 
         controlPanel.add(selectedTilePanel);
+
+        // Panel for save options
+        JPanel savePanel = new JPanel();
+        savePanel.setLayout(new BoxLayout(savePanel, BoxLayout.X_AXIS));
+
+        JLabel saveLabel = new JLabel("Save current state as preset - filename: ");
+        savePanel.add(saveLabel);
+
+        JTextArea saveNameTextArea = new JTextArea("filename");
+        saveNameTextArea.setMaximumSize(new Dimension(MAXTEXTAREAWIDTH, MAXTEXTAREAHEIGHT));
+        savePanel.add(saveNameTextArea);
+
+        JButton numFoodButton = new JButton("Save as");
+        numFoodButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Write the engine object to a file
+                try {
+                    FileOutputStream f = new FileOutputStream(new File("presets/" + saveNameTextArea.getText() + ".txt"));
+                    ObjectOutputStream o = new ObjectOutputStream(f);
+
+                    o.writeObject(engine);
+                    f.close();
+                    o.close();
+
+                    JOptionPane.showMessageDialog(null, "Simulation saved successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException exception) {
+                    JOptionPane.showMessageDialog(null, "Error saving simulation", "Error", JOptionPane.WARNING_MESSAGE);
+                }
+
+            }
+        });
+        savePanel.add(numFoodButton);
+
+        selectedTilePanel.add(savePanel);
 
         // Create the split pane, with more space given to the grid
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gridPanel, controlPanel);
