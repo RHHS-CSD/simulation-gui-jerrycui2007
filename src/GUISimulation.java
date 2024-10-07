@@ -21,8 +21,8 @@ public class GUISimulation {
     private static JFrame frame;
 
     // Constants
-    final int SCREENWIDTH = 1820;
-    final int SCREENHEIGHT = 1005;
+    final int SCREENWIDTH = 1920;
+    final int SCREENHEIGHT = 1080;
 
     final private int MINROWS = 10;
     final private int MINCOLUMNS = 10;
@@ -35,8 +35,6 @@ public class GUISimulation {
     final private int MAXCOMBOBOXHEIGHT = 20;
     final private int MAXTEXTAREAWIDTH = 300;
     final private int MAXTEXTAREAHEIGHT = 20;
-    final private int MAXBUTTONWIDTH = 300;
-    final private int MAXBUTTONHEIGHT = 50;
 
     final private double gridPanelPercentage = 0.7;  // percent of the screen that contains the grid (other percentage is for the control panel)
 
@@ -77,10 +75,34 @@ public class GUISimulation {
     private Timer turnTimer;
 
     /**
-     * Initialize the GUI simulation
+     * Initialize the GUI simulation, by first showing a splash screen
      */
     public GUISimulation() {
-        // Create the frame
+        // Create the splash screen frame
+        JWindow splashScreen = new JWindow();
+        splashScreen.setSize(SCREENWIDTH, SCREENHEIGHT);
+
+        // Load the GIF file as an ImageIcon
+        JLabel gifLabel = new JLabel(new ImageIcon("splashscreen.gif"));
+        splashScreen.add(gifLabel);
+
+        splashScreen.setLocationRelativeTo(null); // Center the splash screen
+        splashScreen.setVisible(true);
+
+        // Use a timer to close the splash screen after six seconds (length of the splash screen)
+        Timer timer = new Timer(6000, e -> {
+            splashScreen.dispose(); // Close splash screen
+            showMainMenu();         // Proceed to main menu
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    /**
+     * Method to show the main menu after the splash screen
+     */
+    private void showMainMenu() {
+        // Create the main application frame
         frame = new JFrame("Ant Colony Optimization");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(SCREENWIDTH, SCREENHEIGHT);
@@ -169,9 +191,14 @@ public class GUISimulation {
         frame.getContentPane().removeAll();
 
         JPanel helpPanel = new JPanel();
-        helpPanel.setLayout(new BorderLayout());
+        helpPanel.setLayout(new BoxLayout(helpPanel, BoxLayout.Y_AXIS));
         frame.add(helpPanel);
 
+        // Create a sub-panel for the label with FlowLayout to center it horizontally
+        JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));  // Center the label within this panel
+        helpPanel.add(labelPanel);  // Add the sub-panel to helpPanel
+
+        // Create the help label with HTML content
         JLabel helpLabel = new JLabel("<html><div style='text-align: center;'>"
                 + "<h1>Help</h1>"
                 + "<p><strong>About the simulation:</strong><br>"
@@ -195,8 +222,8 @@ public class GUISimulation {
                 + "Use this to save maps you've created, like complicated mazes.</p>"
                 + "</div></html>");
 
-        helpLabel.setHorizontalAlignment(SwingConstants.CENTER);  // Center the label horizontally
-        helpPanel.add(helpLabel, BorderLayout.NORTH);  // Add label to the top of the screen
+        // Add the label to the center-aligned panel
+        labelPanel.add(helpLabel);
 
         // Stupid button kept on ballooning to take up the entire screen so I made a panel just to control it
         JPanel buttonPanel = new JPanel();
@@ -214,11 +241,12 @@ public class GUISimulation {
 
         buttonPanel.add(backButton);
 
-        helpPanel.add(buttonPanel, BorderLayout.SOUTH);
+        helpPanel.add(buttonPanel);
 
         // Update the frame
         frame.revalidate();
         frame.repaint();
+
     }
 
     /**
